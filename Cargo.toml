@@ -1,0 +1,9 @@
+[workspace.package]
+authors = ["ryone9re <ryone9re@ryone.dev>"]
+repository = "https://github.com/ryone9re/tenor"
+edition = "2024"
+license = "MIT"
+readme = "README.md"
+
+[workspace]
+members = ["tenor-tui"]
