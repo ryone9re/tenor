@@ -4,9 +4,9 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 use tenor_core::{
     BoxedLogStream, BoxedStatsStream, Container, ContainerDetail, ContainerFilter, ContainerId,
-    ContainerState, DeleteContainerOpts, Engine, EngineError, EngineInfo, EngineResult,
-    ExecHandle, ExecSpec, Image, ImageDetail, ImageFilter, ImageId, LogOpts, Network,
-    NetworkDetail, NetworkFilter, NetworkId, Volume, VolumeDetail, VolumeFilter, VolumeName,
+    ContainerState, DeleteContainerOpts, Engine, EngineError, EngineInfo, EngineResult, ExecHandle,
+    ExecSpec, Image, ImageDetail, ImageFilter, ImageId, LogOpts, Network, NetworkDetail,
+    NetworkFilter, NetworkId, Volume, VolumeDetail, VolumeFilter, VolumeName,
 };
 use tenor_tui::app::{App, Tab};
 
@@ -202,9 +202,7 @@ async fn test_quit_with_ctrl_c() {
     let mut app = create_test_app().await;
     assert!(!app.should_quit);
 
-    app.handle_key(key_with_ctrl(KeyCode::Char('c')))
-        .await
-        .unwrap();
+    app.handle_key(key_with_ctrl(KeyCode::Char('c'))).await.unwrap();
     assert!(app.should_quit);
 }
 
@@ -384,7 +382,7 @@ async fn test_tab_all() {
 async fn test_start_container_operation() {
     let mut app = create_test_app().await;
     assert_eq!(app.selected_container, 0);
-    
+
     // Start should succeed without error
     app.start_selected_container().await.unwrap();
 }
@@ -392,7 +390,7 @@ async fn test_start_container_operation() {
 #[tokio::test]
 async fn test_stop_container_operation() {
     let mut app = create_test_app().await;
-    
+
     // Stop should succeed without error
     app.stop_selected_container().await.unwrap();
 }
@@ -400,7 +398,7 @@ async fn test_stop_container_operation() {
 #[tokio::test]
 async fn test_restart_container_operation() {
     let mut app = create_test_app().await;
-    
+
     // Restart should succeed without error
     app.restart_selected_container().await.unwrap();
 }
@@ -410,10 +408,10 @@ async fn test_select_next_wraps_around() {
     let mut app = create_test_app().await;
     assert_eq!(app.containers.len(), 2);
     assert_eq!(app.selected_container, 0);
-    
+
     app.select_next();
     assert_eq!(app.selected_container, 1);
-    
+
     app.select_next();
     assert_eq!(app.selected_container, 0); // Wraps to first
 }
@@ -422,10 +420,10 @@ async fn test_select_next_wraps_around() {
 async fn test_select_prev_wraps_around() {
     let mut app = create_test_app().await;
     assert_eq!(app.selected_container, 0);
-    
+
     app.select_prev();
     assert_eq!(app.selected_container, 1); // Wraps to last
-    
+
     app.select_prev();
     assert_eq!(app.selected_container, 0);
 }
@@ -435,10 +433,10 @@ async fn test_select_next_in_images_tab() {
     let mut app = create_test_app().await;
     app.current_tab = Tab::Images;
     app.refresh_images().await.unwrap();
-    
+
     assert_eq!(app.selected_image, 0);
     assert_eq!(app.images.len(), 1);
-    
+
     app.select_next();
     assert_eq!(app.selected_image, 0); // Wraps immediately with 1 item
 }
@@ -448,10 +446,10 @@ async fn test_select_next_in_volumes_tab() {
     let mut app = create_test_app().await;
     app.current_tab = Tab::Volumes;
     app.refresh_volumes().await.unwrap();
-    
+
     assert_eq!(app.selected_volume, 0);
     assert_eq!(app.volumes.len(), 1);
-    
+
     app.select_next();
     assert_eq!(app.selected_volume, 0);
 }
@@ -461,10 +459,10 @@ async fn test_select_next_in_networks_tab() {
     let mut app = create_test_app().await;
     app.current_tab = Tab::Networks;
     app.refresh_networks().await.unwrap();
-    
+
     assert_eq!(app.selected_network, 0);
     assert_eq!(app.networks.len(), 1);
-    
+
     app.select_next();
     assert_eq!(app.selected_network, 0);
 }
@@ -473,7 +471,7 @@ async fn test_select_next_in_networks_tab() {
 async fn test_refresh_updates_containers() {
     let mut app = create_test_app().await;
     assert!(!app.containers.is_empty());
-    
+
     app.refresh_containers().await.unwrap();
     assert!(!app.containers.is_empty());
 }
@@ -481,7 +479,7 @@ async fn test_refresh_updates_containers() {
 #[tokio::test]
 async fn test_refresh_updates_images() {
     let mut app = create_test_app().await;
-    
+
     app.refresh_images().await.unwrap();
     assert!(!app.images.is_empty());
 }
@@ -489,7 +487,7 @@ async fn test_refresh_updates_images() {
 #[tokio::test]
 async fn test_refresh_updates_volumes() {
     let mut app = create_test_app().await;
-    
+
     app.refresh_volumes().await.unwrap();
     assert!(!app.volumes.is_empty());
 }
@@ -497,7 +495,7 @@ async fn test_refresh_updates_volumes() {
 #[tokio::test]
 async fn test_refresh_updates_networks() {
     let mut app = create_test_app().await;
-    
+
     app.refresh_networks().await.unwrap();
     assert!(!app.networks.is_empty());
 }
@@ -506,7 +504,7 @@ async fn test_refresh_updates_networks() {
 async fn test_show_delete_confirmation_container() {
     let mut app = create_test_app().await;
     assert!(app.modal.is_none());
-    
+
     app.show_delete_confirmation();
     assert!(app.modal.is_some());
 }
@@ -516,7 +514,7 @@ async fn test_show_delete_confirmation_image() {
     let mut app = create_test_app().await;
     app.current_tab = Tab::Images;
     app.refresh_images().await.unwrap();
-    
+
     app.show_delete_confirmation();
     assert!(app.modal.is_some());
 }
@@ -524,12 +522,12 @@ async fn test_show_delete_confirmation_image() {
 #[tokio::test]
 async fn test_modal_selected_state() {
     let mut app = create_test_app().await;
-    
+
     app.show_delete_confirmation();
     assert!(!app.modal_selected); // Default is No (false)
-    
+
     assert!(!app.is_modal_confirm_selected());
-    
+
     app.modal_selected = true;
     assert!(app.is_modal_confirm_selected());
 }
