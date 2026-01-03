@@ -295,7 +295,7 @@ fn render_image_list(app: &App, frame: &mut Frame, area: Rect) {
             let name = image
                 .repo_tags
                 .first()
-                .map(|t| t.clone())
+                .cloned()
                 .unwrap_or_else(|| format!("<none>:{}", &image.id.0[..12]));
 
             let size_mb = image.size as f64 / 1_000_000.0;

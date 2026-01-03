@@ -62,6 +62,9 @@ impl Tab {
 }
 
 #[derive(Debug, Clone)]
+// TODO: Consider renaming to DeleteAction and removing Delete prefix from variants
+// when we add non-delete modal actions (e.g., Restart, Exec, etc.)
+#[allow(clippy::enum_variant_names)]
 pub enum ModalAction {
     DeleteContainer(ContainerId),
     DeleteImage(ImageId),
