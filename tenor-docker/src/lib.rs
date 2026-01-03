@@ -4,7 +4,7 @@ mod engine_impl;
 mod mapper;
 
 pub use client::DockerClient;
-pub use context::{get_current_context, parse_host_to_socket, DockerContext};
+pub use context::{DockerContext, get_current_context, parse_host_to_socket};
 pub use engine_impl::DockerEngine;
 
 use std::path::PathBuf;
@@ -26,7 +26,9 @@ impl ConnectionTarget {
 
     /// Create ConnectionTarget with fallback to default socket
     pub async fn from_context_or_default() -> Self {
-        Self::from_current_context().await.unwrap_or_else(|_| Self::default())
+        Self::from_current_context()
+            .await
+            .unwrap_or_else(|_| Self::default())
     }
 }
 

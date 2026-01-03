@@ -258,7 +258,10 @@ impl App {
     }
 
     pub async fn refresh_containers(&mut self) -> Result<()> {
-        let containers = self.engine.list_containers(ContainerFilter::default()).await?;
+        let containers = self
+            .engine
+            .list_containers(ContainerFilter::default())
+            .await?;
         self.containers = containers;
 
         // Reset selection if out of bounds

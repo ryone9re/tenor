@@ -1,10 +1,10 @@
 use crate::app::{App, Tab};
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph, Tabs, Wrap},
-    Frame,
 };
 
 pub fn render(app: &mut App, frame: &mut Frame) {
@@ -33,7 +33,9 @@ fn render_tabs(app: &App, frame: &mut Frame, area: Rect) {
         .iter()
         .map(|t| {
             let style = if *t == app.current_tab {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -51,7 +53,11 @@ fn render_tabs(app: &App, frame: &mut Frame, area: Rect) {
             Tab::System => 4,
         })
         .style(Style::default())
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        );
 
     frame.render_widget(tabs, area);
 }
@@ -89,7 +95,9 @@ fn render_container_list(app: &App, frame: &mut Frame, area: Rect) {
         .enumerate()
         .map(|(i, container)| {
             let style = if i == app.selected_container {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -124,7 +132,11 @@ fn render_container_list(app: &App, frame: &mut Frame, area: Rect) {
                 .borders(Borders::ALL)
                 .title(format!("Containers ({})", app.containers.len())),
         )
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        );
 
     frame.render_widget(list, area);
 }
@@ -254,13 +266,21 @@ fn render_container_details(app: &App, frame: &mut Frame, area: Rect) {
         }
 
         let paragraph = Paragraph::new(lines)
-            .block(Block::default().borders(Borders::ALL).title("Container Details"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Container Details"),
+            )
             .wrap(Wrap { trim: false });
 
         frame.render_widget(paragraph, area);
     } else {
         let text = Paragraph::new("Loading...")
-            .block(Block::default().borders(Borders::ALL).title("Container Details"))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title("Container Details"),
+            )
             .style(Style::default().fg(Color::Gray));
         frame.render_widget(text, area);
     }
@@ -287,7 +307,9 @@ fn render_image_list(app: &App, frame: &mut Frame, area: Rect) {
         .enumerate()
         .map(|(i, image)| {
             let style = if i == app.selected_image {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -334,7 +356,9 @@ fn render_image_details(app: &App, frame: &mut Frame, area: Rect) {
             if detail.labels.is_empty() {
                 "  (none)".to_string()
             } else {
-                detail.labels.iter()
+                detail
+                    .labels
+                    .iter()
                     .map(|(k, v)| format!("  {}: {}", k, v))
                     .collect::<Vec<_>>()
                     .join("\n")
@@ -345,7 +369,11 @@ fn render_image_details(app: &App, frame: &mut Frame, area: Rect) {
     };
 
     let paragraph = Paragraph::new(detail_text)
-        .block(Block::default().borders(Borders::ALL).title("Image Details"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Image Details"),
+        )
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);
@@ -372,7 +400,9 @@ fn render_volume_list(app: &App, frame: &mut Frame, area: Rect) {
         .enumerate()
         .map(|(i, volume)| {
             let style = if i == app.selected_volume {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -419,7 +449,11 @@ fn render_volume_details(app: &App, frame: &mut Frame, area: Rect) {
     };
 
     let paragraph = Paragraph::new(detail_text)
-        .block(Block::default().borders(Borders::ALL).title("Volume Details"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Volume Details"),
+        )
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);
@@ -446,7 +480,9 @@ fn render_network_list(app: &App, frame: &mut Frame, area: Rect) {
         .enumerate()
         .map(|(i, network)| {
             let style = if i == app.selected_network {
-                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
@@ -516,7 +552,11 @@ fn render_network_details(app: &App, frame: &mut Frame, area: Rect) {
     };
 
     let paragraph = Paragraph::new(detail_text)
-        .block(Block::default().borders(Borders::ALL).title("Network Details"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Network Details"),
+        )
         .wrap(Wrap { trim: true });
 
     frame.render_widget(paragraph, area);

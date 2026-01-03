@@ -80,7 +80,7 @@ pub trait Engine: Send + Sync {
     async fn inspect_container(&self, id: &ContainerId) -> EngineResult<ContainerDetail>;
     async fn start_container(&self, id: &ContainerId) -> EngineResult<()>;
     async fn stop_container(&self, id: &ContainerId, timeout: Option<Duration>)
-        -> EngineResult<()>;
+    -> EngineResult<()>;
     async fn restart_container(
         &self,
         id: &ContainerId,

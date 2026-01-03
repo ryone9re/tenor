@@ -1,9 +1,9 @@
 use ratatui::{
+    Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Clear, Paragraph, Wrap},
-    Frame,
 };
 
 /// Confirmation dialog state
@@ -45,13 +45,14 @@ impl ConfirmDialog {
         f.render_widget(Clear, area);
 
         // Draw the dialog box
-        let block = Block::default().borders(Borders::ALL).title(self.title.as_str()).border_style(
-            if self.dangerous {
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(self.title.as_str())
+            .border_style(if self.dangerous {
                 Style::default().fg(Color::Red)
             } else {
                 Style::default().fg(Color::Yellow)
-            },
-        );
+            });
 
         let inner = block.inner(area);
         f.render_widget(block, area);
@@ -82,7 +83,10 @@ impl ConfirmDialog {
 
         // Cancel button (left)
         let cancel_style = if !selected {
-            Style::default().fg(Color::Black).bg(Color::White).add_modifier(Modifier::BOLD)
+            Style::default()
+                .fg(Color::Black)
+                .bg(Color::White)
+                .add_modifier(Modifier::BOLD)
         } else {
             Style::default().fg(Color::White)
         };

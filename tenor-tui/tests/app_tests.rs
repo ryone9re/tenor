@@ -202,7 +202,9 @@ async fn test_quit_with_ctrl_c() {
     let mut app = create_test_app().await;
     assert!(!app.should_quit);
 
-    app.handle_key(key_with_ctrl(KeyCode::Char('c'))).await.unwrap();
+    app.handle_key(key_with_ctrl(KeyCode::Char('c')))
+        .await
+        .unwrap();
     assert!(app.should_quit);
 }
 
