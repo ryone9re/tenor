@@ -107,7 +107,10 @@ impl App {
         let target = ConnectionTarget::from_context_or_default().await;
         let client = DockerClient::new(target)?;
         let engine = Arc::new(DockerEngine::new(client)) as Arc<dyn Engine>;
+        Self::with_engine(engine).await
+    }
 
+    pub async fn with_engine(engine: Arc<dyn Engine>) -> Result<Self> {
         let mut app = Self {
             engine,
             current_tab: Tab::Containers,
@@ -254,7 +257,7 @@ impl App {
         Ok(())
     }
 
-    async fn refresh_containers(&mut self) -> Result<()> {
+    pub async fn refresh_containers(&mut self) -> Result<()> {
         let containers = self.engine.list_containers(ContainerFilter::default()).await?;
         self.containers = containers;
 
@@ -266,7 +269,7 @@ impl App {
         Ok(())
     }
 
-    async fn refresh_images(&mut self) -> Result<()> {
+    pub async fn refresh_images(&mut self) -> Result<()> {
         let images = self.engine.list_images(ImageFilter::default()).await?;
         self.images = images;
 
@@ -277,7 +280,7 @@ impl App {
         Ok(())
     }
 
-    async fn refresh_volumes(&mut self) -> Result<()> {
+    pub async fn refresh_volumes(&mut self) -> Result<()> {
         let volumes = self.engine.list_volumes(VolumeFilter::default()).await?;
         self.volumes = volumes;
 
@@ -288,7 +291,7 @@ impl App {
         Ok(())
     }
 
-    async fn refresh_networks(&mut self) -> Result<()> {
+    pub async fn refresh_networks(&mut self) -> Result<()> {
         let networks = self.engine.list_networks(NetworkFilter::default()).await?;
         self.networks = networks;
 
@@ -299,7 +302,7 @@ impl App {
         Ok(())
     }
 
-    fn select_next(&mut self) {
+    pub fn select_next(&mut self) {
         match self.current_tab {
             Tab::Containers => {
                 if !self.containers.is_empty() {
@@ -325,7 +328,7 @@ impl App {
         }
     }
 
-    fn select_prev(&mut self) {
+    pub fn select_prev(&mut self) {
         match self.current_tab {
             Tab::Containers => {
                 if !self.containers.is_empty() {
@@ -367,7 +370,7 @@ impl App {
         }
     }
 
-    async fn start_selected_container(&mut self) -> Result<()> {
+    pub async fn start_selected_container(&mut self) -> Result<()> {
         if let Some(container) = self.containers.get(self.selected_container) {
             self.engine.start_container(&container.id).await?;
             self.refresh_containers().await?;
@@ -375,7 +378,7 @@ impl App {
         Ok(())
     }
 
-    async fn stop_selected_container(&mut self) -> Result<()> {
+    pub async fn stop_selected_container(&mut self) -> Result<()> {
         if let Some(container) = self.containers.get(self.selected_container) {
             self.engine.stop_container(&container.id, None).await?;
             self.refresh_containers().await?;
@@ -383,7 +386,7 @@ impl App {
         Ok(())
     }
 
-    async fn restart_selected_container(&mut self) -> Result<()> {
+    pub async fn restart_selected_container(&mut self) -> Result<()> {
         if let Some(container) = self.containers.get(self.selected_container) {
             self.engine.restart_container(&container.id, None).await?;
             self.refresh_containers().await?;
@@ -391,7 +394,7 @@ impl App {
         Ok(())
     }
 
-    fn show_delete_confirmation(&mut self) {
+    pub fn show_delete_confirmation(&mut self) {
         match self.current_tab {
             Tab::Containers => {
                 if let Some(container) = self.containers.get(self.selected_container) {

@@ -13,6 +13,12 @@ pub struct EventHandler {
     tick_rate: Duration,
 }
 
+impl Default for EventHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EventHandler {
     pub fn new() -> Self {
         Self {
