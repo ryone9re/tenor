@@ -1,7 +1,10 @@
 use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::sync::Arc;
-use tenor_core::{Container, ContainerDetail, ContainerFilter, ContainerId, Engine};
+use tenor_core::{
+    Container, ContainerDetail, ContainerFilter, ContainerId, Engine, Image, ImageFilter, ImageId,
+    Network, NetworkFilter, NetworkId, Volume, VolumeFilter, VolumeName,
+};
 use tenor_docker::{ConnectionTarget, DockerClient, DockerEngine};
 
 use crate::components::ConfirmDialog;
@@ -60,18 +63,32 @@ impl Tab {
 #[derive(Debug, Clone)]
 pub enum ModalAction {
     DeleteContainer(ContainerId),
+    DeleteImage(ImageId),
+    DeleteVolume(VolumeName),
+    DeleteNetwork(NetworkId),
 }
 
 pub struct App {
     pub engine: Arc<dyn Engine>,
     pub current_tab: Tab,
+    // Containers tab
     pub containers: Vec<Container>,
     pub selected_container: usize,
+    pub show_details: bool,
+    pub container_detail: Option<ContainerDetail>,
+    // Images tab
+    pub images: Vec<Image>,
+    pub selected_image: usize,
+    // Volumes tab
+    pub volumes: Vec<Volume>,
+    pub selected_volume: usize,
+    // Networks tab
+    pub networks: Vec<Network>,
+    pub selected_network: usize,
+    // Global state
     pub should_quit: bool,
     pub modal: Option<(ConfirmDialog, ModalAction)>,
     pub modal_selected: bool, // true = confirm, false = cancel
-    pub show_details: bool,
-    pub container_detail: Option<ContainerDetail>,
 }
 
 impl App {
@@ -84,13 +101,24 @@ impl App {
         let mut app = Self {
             engine,
             current_tab: Tab::Containers,
+            // Containers
             containers: Vec::new(),
             selected_container: 0,
+            show_details: false,
+            container_detail: None,
+            // Images
+            images: Vec::new(),
+            selected_image: 0,
+            // Volumes
+            volumes: Vec::new(),
+            selected_volume: 0,
+            // Networks
+            networks: Vec::new(),
+            selected_network: 0,
+            // Global
             should_quit: false,
             modal: None,
             modal_selected: false,
-            show_details: false,
-            container_detail: None,
         };
 
         // Load initial data
@@ -133,15 +161,32 @@ impl App {
             }
             KeyCode::Tab => {
                 self.current_tab = self.current_tab.next();
+                self.refresh_current_tab().await?;
             }
             KeyCode::BackTab => {
                 self.current_tab = self.current_tab.prev();
+                self.refresh_current_tab().await?;
             }
-            KeyCode::Char('1') => self.current_tab = Tab::Containers,
-            KeyCode::Char('2') => self.current_tab = Tab::Images,
-            KeyCode::Char('3') => self.current_tab = Tab::Volumes,
-            KeyCode::Char('4') => self.current_tab = Tab::Networks,
-            KeyCode::Char('5') => self.current_tab = Tab::System,
+            KeyCode::Char('1') => {
+                self.current_tab = Tab::Containers;
+                self.refresh_current_tab().await?;
+            }
+            KeyCode::Char('2') => {
+                self.current_tab = Tab::Images;
+                self.refresh_current_tab().await?;
+            }
+            KeyCode::Char('3') => {
+                self.current_tab = Tab::Volumes;
+                self.refresh_current_tab().await?;
+            }
+            KeyCode::Char('4') => {
+                self.current_tab = Tab::Networks;
+                self.refresh_current_tab().await?;
+            }
+            KeyCode::Char('5') => {
+                self.current_tab = Tab::System;
+                self.refresh_current_tab().await?;
+            }
             KeyCode::Char('r') | KeyCode::Char('R') => {
                 self.refresh_current_tab().await?;
             }
@@ -152,19 +197,27 @@ impl App {
                 self.select_prev();
             }
             KeyCode::Char('s') => {
-                self.start_selected_container().await?;
+                if self.current_tab == Tab::Containers {
+                    self.start_selected_container().await?;
+                }
             }
             KeyCode::Char('t') => {
-                self.stop_selected_container().await?;
+                if self.current_tab == Tab::Containers {
+                    self.stop_selected_container().await?;
+                }
             }
             KeyCode::Char('d') => {
                 self.show_delete_confirmation();
             }
             KeyCode::Char('x') => {
-                self.restart_selected_container().await?;
+                if self.current_tab == Tab::Containers {
+                    self.restart_selected_container().await?;
+                }
             }
             KeyCode::Enter | KeyCode::Char('i') => {
-                self.toggle_details().await?;
+                if self.current_tab == Tab::Containers {
+                    self.toggle_details().await?;
+                }
             }
             _ => {}
         }
@@ -179,9 +232,9 @@ impl App {
     async fn refresh_current_tab(&mut self) -> Result<()> {
         match self.current_tab {
             Tab::Containers => self.refresh_containers().await?,
-            Tab::Images => {}
-            Tab::Volumes => {}
-            Tab::Networks => {}
+            Tab::Images => self.refresh_images().await?,
+            Tab::Volumes => self.refresh_volumes().await?,
+            Tab::Networks => self.refresh_networks().await?,
             Tab::System => {}
         }
         Ok(())
@@ -199,19 +252,104 @@ impl App {
         Ok(())
     }
 
+    async fn refresh_images(&mut self) -> Result<()> {
+        let images = self.engine.list_images(ImageFilter::default()).await?;
+        self.images = images;
+
+        if self.selected_image >= self.images.len() && !self.images.is_empty() {
+            self.selected_image = self.images.len() - 1;
+        }
+
+        Ok(())
+    }
+
+    async fn refresh_volumes(&mut self) -> Result<()> {
+        let volumes = self.engine.list_volumes(VolumeFilter::default()).await?;
+        self.volumes = volumes;
+
+        if self.selected_volume >= self.volumes.len() && !self.volumes.is_empty() {
+            self.selected_volume = self.volumes.len() - 1;
+        }
+
+        Ok(())
+    }
+
+    async fn refresh_networks(&mut self) -> Result<()> {
+        let networks = self.engine.list_networks(NetworkFilter::default()).await?;
+        self.networks = networks;
+
+        if self.selected_network >= self.networks.len() && !self.networks.is_empty() {
+            self.selected_network = self.networks.len() - 1;
+        }
+
+        Ok(())
+    }
+
     fn select_next(&mut self) {
-        if !self.containers.is_empty() {
-            self.selected_container = (self.selected_container + 1) % self.containers.len();
+        match self.current_tab {
+            Tab::Containers => {
+                if !self.containers.is_empty() {
+                    self.selected_container = (self.selected_container + 1) % self.containers.len();
+                }
+            }
+            Tab::Images => {
+                if !self.images.is_empty() {
+                    self.selected_image = (self.selected_image + 1) % self.images.len();
+                }
+            }
+            Tab::Volumes => {
+                if !self.volumes.is_empty() {
+                    self.selected_volume = (self.selected_volume + 1) % self.volumes.len();
+                }
+            }
+            Tab::Networks => {
+                if !self.networks.is_empty() {
+                    self.selected_network = (self.selected_network + 1) % self.networks.len();
+                }
+            }
+            Tab::System => {}
         }
     }
 
     fn select_prev(&mut self) {
-        if !self.containers.is_empty() {
-            if self.selected_container == 0 {
-                self.selected_container = self.containers.len() - 1;
-            } else {
-                self.selected_container -= 1;
+        match self.current_tab {
+            Tab::Containers => {
+                if !self.containers.is_empty() {
+                    if self.selected_container == 0 {
+                        self.selected_container = self.containers.len() - 1;
+                    } else {
+                        self.selected_container -= 1;
+                    }
+                }
             }
+            Tab::Images => {
+                if !self.images.is_empty() {
+                    if self.selected_image == 0 {
+                        self.selected_image = self.images.len() - 1;
+                    } else {
+                        self.selected_image -= 1;
+                    }
+                }
+            }
+            Tab::Volumes => {
+                if !self.volumes.is_empty() {
+                    if self.selected_volume == 0 {
+                        self.selected_volume = self.volumes.len() - 1;
+                    } else {
+                        self.selected_volume -= 1;
+                    }
+                }
+            }
+            Tab::Networks => {
+                if !self.networks.is_empty() {
+                    if self.selected_network == 0 {
+                        self.selected_network = self.networks.len() - 1;
+                    } else {
+                        self.selected_network -= 1;
+                    }
+                }
+            }
+            Tab::System => {}
         }
     }
 
@@ -240,19 +378,73 @@ impl App {
     }
 
     fn show_delete_confirmation(&mut self) {
-        if let Some(container) = self.containers.get(self.selected_container) {
-            let dialog = ConfirmDialog::new(
-                "Delete Container",
-                format!(
-                    "Are you sure you want to delete container '{}'?\n\nThis action cannot be undone.",
-                    container.name
-                ),
-            )
-            .dangerous()
-            .with_labels("Delete", "Cancel");
+        match self.current_tab {
+            Tab::Containers => {
+                if let Some(container) = self.containers.get(self.selected_container) {
+                    let dialog = ConfirmDialog::new(
+                        "Delete Container",
+                        format!(
+                            "Are you sure you want to delete container '{}'?\n\nThis action cannot be undone.",
+                            container.name
+                        ),
+                    )
+                    .dangerous()
+                    .with_labels("Delete", "Cancel");
 
-            self.modal = Some((dialog, ModalAction::DeleteContainer(container.id.clone())));
-            self.modal_selected = false; // Default to Cancel
+                    self.modal = Some((dialog, ModalAction::DeleteContainer(container.id.clone())));
+                    self.modal_selected = false;
+                }
+            }
+            Tab::Images => {
+                if let Some(image) = self.images.get(self.selected_image) {
+                    let name = image.repo_tags.first().unwrap_or(&image.id.0);
+                    let dialog = ConfirmDialog::new(
+                        "Delete Image",
+                        format!(
+                            "Are you sure you want to delete image '{}'?\n\nThis action cannot be undone.",
+                            name
+                        ),
+                    )
+                    .dangerous()
+                    .with_labels("Delete", "Cancel");
+
+                    self.modal = Some((dialog, ModalAction::DeleteImage(image.id.clone())));
+                    self.modal_selected = false;
+                }
+            }
+            Tab::Volumes => {
+                if let Some(volume) = self.volumes.get(self.selected_volume) {
+                    let dialog = ConfirmDialog::new(
+                        "Delete Volume",
+                        format!(
+                            "Are you sure you want to delete volume '{}'?\n\nThis action cannot be undone.",
+                            volume.name.0
+                        ),
+                    )
+                    .dangerous()
+                    .with_labels("Delete", "Cancel");
+
+                    self.modal = Some((dialog, ModalAction::DeleteVolume(volume.name.clone())));
+                    self.modal_selected = false;
+                }
+            }
+            Tab::Networks => {
+                if let Some(network) = self.networks.get(self.selected_network) {
+                    let dialog = ConfirmDialog::new(
+                        "Delete Network",
+                        format!(
+                            "Are you sure you want to delete network '{}'?\n\nThis action cannot be undone.",
+                            network.name
+                        ),
+                    )
+                    .dangerous()
+                    .with_labels("Delete", "Cancel");
+
+                    self.modal = Some((dialog, ModalAction::DeleteNetwork(network.id.clone())));
+                    self.modal_selected = false;
+                }
+            }
+            Tab::System => {}
         }
     }
 
@@ -264,6 +456,18 @@ impl App {
                         .delete_container(&id, tenor_core::DeleteContainerOpts::default())
                         .await?;
                     self.refresh_containers().await?;
+                }
+                ModalAction::DeleteImage(id) => {
+                    self.engine.remove_image(&id, false).await?;
+                    self.refresh_images().await?;
+                }
+                ModalAction::DeleteVolume(id) => {
+                    self.engine.remove_volume(&id, false).await?;
+                    self.refresh_volumes().await?;
+                }
+                ModalAction::DeleteNetwork(id) => {
+                    self.engine.remove_network(&id).await?;
+                    self.refresh_networks().await?;
                 }
             }
         }

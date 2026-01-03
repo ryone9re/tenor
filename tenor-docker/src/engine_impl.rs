@@ -151,8 +151,14 @@ impl Engine for DockerEngine {
     }
 
     async fn list_volumes(&self, _filter: VolumeFilter) -> EngineResult<Vec<Volume>> {
-        // TODO: Implement volume list
-        Ok(vec![])
+        let path = "/volumes";
+        let response: DockerVolumeList = self.client.get(path).await?;
+        Ok(response
+            .volumes
+            .unwrap_or_default()
+            .into_iter()
+            .map(|v| v.into_domain())
+            .collect())
     }
 
     async fn inspect_volume(&self, _name: &VolumeName) -> EngineResult<VolumeDetail> {
@@ -172,8 +178,9 @@ impl Engine for DockerEngine {
     }
 
     async fn list_networks(&self, _filter: NetworkFilter) -> EngineResult<Vec<Network>> {
-        // TODO: Implement network list
-        Ok(vec![])
+        let path = "/networks";
+        let networks: Vec<DockerNetworkInfo> = self.client.get(path).await?;
+        Ok(networks.into_iter().map(|n| n.into_domain()).collect())
     }
 
     async fn inspect_network(&self, _id: &NetworkId) -> EngineResult<NetworkDetail> {

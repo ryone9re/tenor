@@ -59,9 +59,9 @@ fn render_tabs(app: &App, frame: &mut Frame, area: Rect) {
 fn render_content(app: &App, frame: &mut Frame, area: Rect) {
     match app.current_tab {
         Tab::Containers => render_containers(app, frame, area),
-        Tab::Images => render_placeholder("Images", frame, area),
-        Tab::Volumes => render_placeholder("Volumes", frame, area),
-        Tab::Networks => render_placeholder("Networks", frame, area),
+        Tab::Images => render_images(app, frame, area),
+        Tab::Volumes => render_volumes(app, frame, area),
+        Tab::Networks => render_networks(app, frame, area),
         Tab::System => render_placeholder("System", frame, area),
     }
 }
@@ -225,7 +225,10 @@ fn render_container_details(app: &App, frame: &mut Frame, area: Rect) {
                 }
             }
             if detail.env.len() > 10 {
-                lines.push(Line::from(format!("  ... and {} more", detail.env.len() - 10)));
+                lines.push(Line::from(format!(
+                    "  ... and {} more",
+                    detail.env.len() - 10
+                )));
             }
         }
 
@@ -251,24 +254,110 @@ fn render_container_details(app: &App, frame: &mut Frame, area: Rect) {
         }
 
         let paragraph = Paragraph::new(lines)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Container Details"),
-            )
+            .block(Block::default().borders(Borders::ALL).title("Container Details"))
             .wrap(Wrap { trim: false });
 
         frame.render_widget(paragraph, area);
     } else {
         let text = Paragraph::new("Loading...")
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Container Details"),
-            )
+            .block(Block::default().borders(Borders::ALL).title("Container Details"))
             .style(Style::default().fg(Color::Gray));
         frame.render_widget(text, area);
     }
+}
+
+fn render_images(app: &App, frame: &mut Frame, area: Rect) {
+    let items: Vec<ListItem> = app
+        .images
+        .iter()
+        .enumerate()
+        .map(|(i, image)| {
+            let style = if i == app.selected_image {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+
+            let name = image
+                .repo_tags
+                .first()
+                .map(|t| t.clone())
+                .unwrap_or_else(|| format!("<none>:{}", &image.id.0[..12]));
+
+            let size_mb = image.size as f64 / 1_000_000.0;
+            let content = format!("{:<50} {:>10.1} MB", name, size_mb);
+
+            ListItem::new(Line::from(vec![Span::styled(content, style)]))
+        })
+        .collect();
+
+    let list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Images ({})", app.images.len())),
+    );
+
+    frame.render_widget(list, area);
+}
+
+fn render_volumes(app: &App, frame: &mut Frame, area: Rect) {
+    let items: Vec<ListItem> = app
+        .volumes
+        .iter()
+        .enumerate()
+        .map(|(i, volume)| {
+            let style = if i == app.selected_volume {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+
+            let content = format!(
+                "{:<30} {:<15} {}",
+                volume.name.0, volume.driver, volume.mountpoint
+            );
+
+            ListItem::new(Line::from(vec![Span::styled(content, style)]))
+        })
+        .collect();
+
+    let list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Volumes ({})", app.volumes.len())),
+    );
+
+    frame.render_widget(list, area);
+}
+
+fn render_networks(app: &App, frame: &mut Frame, area: Rect) {
+    let items: Vec<ListItem> = app
+        .networks
+        .iter()
+        .enumerate()
+        .map(|(i, network)| {
+            let style = if i == app.selected_network {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+
+            let content = format!(
+                "{:<30} {:<15} {}",
+                network.name, network.driver, network.scope
+            );
+
+            ListItem::new(Line::from(vec![Span::styled(content, style)]))
+        })
+        .collect();
+
+    let list = List::new(items).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title(format!("Networks ({})", app.networks.len())),
+    );
+
+    frame.render_widget(list, area);
 }
 
 fn render_placeholder(title: &str, frame: &mut Frame, area: Rect) {
@@ -290,6 +379,9 @@ fn render_status_bar(app: &App, frame: &mut Frame, area: Rect) {
                 } else {
                     "q: quit | r: refresh | ↑↓/jk: navigate | Enter/i: details | s: start | t: stop | x: restart | d: delete | 1-5: tabs"
                 }
+            }
+            Tab::Images | Tab::Volumes | Tab::Networks => {
+                "q: quit | r: refresh | ↑↓/jk: navigate | d: delete | 1-5: switch tabs"
             }
             _ => "q: quit | r: refresh | 1-5: switch tabs",
         }

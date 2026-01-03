@@ -117,6 +117,38 @@ pub struct DockerImage {
     pub labels: Option<BTreeMap<String, String>>,
 }
 
+/// Docker API Volume response
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerVolume {
+    pub name: String,
+    pub driver: String,
+    pub mountpoint: String,
+    #[serde(default)]
+    pub labels: Option<BTreeMap<String, String>>,
+}
+
+/// Docker API Volume list response
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerVolumeList {
+    pub volumes: Option<Vec<DockerVolume>>,
+}
+
+/// Docker API Network response (for list)
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerNetworkInfo {
+    #[serde(rename = "Id")]
+    pub id: String,
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    pub internal: bool,
+    #[serde(default)]
+    pub labels: Option<BTreeMap<String, String>>,
+}
+
 /// Mappers
 impl DockerContainer {
     pub fn into_domain(self) -> Container {
@@ -220,6 +252,30 @@ impl DockerImage {
             repo_tags: self.repo_tags,
             size: self.size,
             created_at: DateTime::from_timestamp(self.created, 0).unwrap_or_default(),
+            labels: self.labels.unwrap_or_default(),
+        }
+    }
+}
+
+impl DockerVolume {
+    pub fn into_domain(self) -> Volume {
+        Volume {
+            name: VolumeName(self.name),
+            driver: self.driver,
+            mountpoint: self.mountpoint,
+            labels: self.labels.unwrap_or_default(),
+        }
+    }
+}
+
+impl DockerNetworkInfo {
+    pub fn into_domain(self) -> Network {
+        Network {
+            id: NetworkId(self.id),
+            name: self.name,
+            driver: self.driver,
+            scope: self.scope,
+            internal: self.internal,
             labels: self.labels.unwrap_or_default(),
         }
     }
