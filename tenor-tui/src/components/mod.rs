@@ -1,1 +1,3 @@
-// Placeholder for components module
+pub mod modal;
+
+pub use modal::ConfirmDialog;
