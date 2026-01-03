@@ -1,0 +1,40 @@
+[package]
+name = "tenor-docker"
+version = "0.1.0"
+authors.workspace = true
+repository.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Core dependency
+tenor-core = { path = "../tenor-core" }
+
+# Async
+tokio = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+# HTTP client
+hyper = { workspace = true }
+hyper-util = { workspace = true }
+http-body-util = { workspace = true }
+
+# Unix socket support
+hyperlocal-next = "0.9"
+tower = "0.5"
+
+# Error handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Date/Time
+chrono = { workspace = true }
+
+# Utilities
+bytes = { workspace = true }
+url = "2.5"

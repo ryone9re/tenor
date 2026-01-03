@@ -1,1 +1,32 @@
+# Rust build artifacts
 /target
+target/
+
+# Cargo.lock for libraries (keep for binaries)
+# Cargo.lock
+
+# Debug and test outputs
+*.log
+*.profdata
+*.profraw
+
+# cargo-mutants output
+mutants.out/
+mutants.out.old/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test coverage
+coverage/
+tarpaulin-report.html
+cobertura.xml
+
+# Environment files
+.env
+.env.local

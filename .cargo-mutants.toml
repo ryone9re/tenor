@@ -1,0 +1,27 @@
+# cargo-mutants configuration
+# https://mutants.rs/configuration.html
+
+# Exclude certain files or modules from mutation testing
+exclude_globs = [
+    # Binary main files don't need mutation testing
+    "tenor-tui/src/main.rs",
+    # TODO implementations aren't worth testing yet
+]
+
+# Don't mutate functions that are marked with these attributes
+exclude_re = [
+    # Skip Display implementations as they're UI-only
+    "::fmt",
+    # Skip Default implementations
+    "::default",
+]
+
+# Show console output for mutations
+minimum_test_timeout = 300
+
+# Options for better output
+colors = true
+
+# Limit to only check changed files in CI (optional, can be overridden)
+# This makes CI faster while still catching regressions
+# in_diff = true

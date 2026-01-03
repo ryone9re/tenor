@@ -1,0 +1,130 @@
+use crate::app::{App, Tab};
+use ratatui::{
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
+    Frame,
+};
+
+pub fn render(app: &mut App, frame: &mut Frame) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(3), // Tabs
+            Constraint::Min(0),    // Content
+            Constraint::Length(1), // Status bar
+        ])
+        .split(frame.area());
+
+    render_tabs(app, frame, chunks[0]);
+    render_content(app, frame, chunks[1]);
+    render_status_bar(app, frame, chunks[2]);
+}
+
+fn render_tabs(app: &App, frame: &mut Frame, area: Rect) {
+    let tabs_list = Tab::all();
+    let titles: Vec<Line> = tabs_list
+        .iter()
+        .map(|t| {
+            let style = if *t == app.current_tab {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+            Line::from(Span::styled(t.title(), style))
+        })
+        .collect();
+
+    let tabs = Tabs::new(titles)
+        .block(Block::default().borders(Borders::ALL).title("Tenor"))
+        .select(match app.current_tab {
+            Tab::Containers => 0,
+            Tab::Images => 1,
+            Tab::Volumes => 2,
+            Tab::Networks => 3,
+            Tab::System => 4,
+        })
+        .style(Style::default())
+        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+
+    frame.render_widget(tabs, area);
+}
+
+fn render_content(app: &App, frame: &mut Frame, area: Rect) {
+    match app.current_tab {
+        Tab::Containers => render_containers(app, frame, area),
+        Tab::Images => render_placeholder("Images", frame, area),
+        Tab::Volumes => render_placeholder("Volumes", frame, area),
+        Tab::Networks => render_placeholder("Networks", frame, area),
+        Tab::System => render_placeholder("System", frame, area),
+    }
+}
+
+fn render_containers(app: &App, frame: &mut Frame, area: Rect) {
+    let items: Vec<ListItem> = app
+        .containers
+        .iter()
+        .enumerate()
+        .map(|(i, container)| {
+            let style = if i == app.selected_container {
+                Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
+
+            let state_color = match container.state {
+                tenor_core::ContainerState::Running => Color::Green,
+                tenor_core::ContainerState::Exited => Color::Red,
+                tenor_core::ContainerState::Paused => Color::Yellow,
+                tenor_core::ContainerState::Restarting => Color::Cyan,
+                tenor_core::ContainerState::Dead => Color::DarkGray,
+                tenor_core::ContainerState::Unknown => Color::Gray,
+            };
+
+            let content = format!(
+                "{:<20} {:<15} {:<30} {}",
+                container.name,
+                format!("{}", container.state),
+                container.image,
+                container.status
+            );
+
+            ListItem::new(Line::from(vec![
+                Span::styled("● ", Style::default().fg(state_color)),
+                Span::styled(content, style),
+            ]))
+        })
+        .collect();
+
+    let list = List::new(items)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(format!("Containers ({})", app.containers.len())),
+        )
+        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+
+    frame.render_widget(list, area);
+}
+
+fn render_placeholder(title: &str, frame: &mut Frame, area: Rect) {
+    let text = Paragraph::new(format!("{} view - Coming soon", title))
+        .block(Block::default().borders(Borders::ALL).title(title))
+        .style(Style::default().fg(Color::Gray));
+
+    frame.render_widget(text, area);
+}
+
+fn render_status_bar(app: &App, frame: &mut Frame, area: Rect) {
+    let help_text = match app.current_tab {
+        Tab::Containers => {
+            "q: quit | r: refresh | ↑↓/jk: navigate | s: start | t: stop | 1-5: switch tabs"
+        }
+        _ => "q: quit | r: refresh | 1-5: switch tabs",
+    };
+
+    let status = Paragraph::new(help_text).style(Style::default().fg(Color::DarkGray));
+
+    frame.render_widget(status, area);
+}

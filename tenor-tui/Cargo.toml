@@ -7,4 +7,24 @@ edition.workspace = true
 license.workspace = true
 readme.workspace = true
 
+[[bin]]
+name = "tenor"
+path = "src/main.rs"
+
 [dependencies]
+# Core dependencies
+tenor-core = { path = "../tenor-core" }
+tenor-docker = { path = "../tenor-docker" }
+
+# Async
+tokio = { workspace = true }
+
+# TUI
+ratatui = { workspace = true }
+crossterm = { workspace = true }
+
+# Error handling
+anyhow = { workspace = true }
+
+# Utilities
+futures = { workspace = true }

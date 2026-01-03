@@ -50,9 +50,15 @@ Tenor focuses on day-to-day operations:
 Tenor does **not** bundle a container engine. You need an engine running separately.
 
 - Docker Engine (`dockerd`) reachable via a socket
-  - Linux: `unix:///var/run/docker.sock`
-  - macOS: via Docker Desktop / Colima / etc. (as long as the Docker API socket is reachable)
-  - Windows: WSL2 scenarios TBD (tracked in issues)
+  - Tenor automatically detects your current Docker context
+  - Supports: Docker Desktop, OrbStack, Colima, Rancher Desktop, etc.
+  - Linux: typically `unix:///var/run/docker.sock`
+  - macOS: varies by tool (e.g., OrbStack uses `~/.orbstack/run/docker.sock`)
+
+Connection priority:
+
+1. Current Docker context (via `docker context inspect`)
+2. Fallback to `/var/run/docker.sock`
 
 ⚠️ **Security note:** Access to `docker.sock` is effectively root-equivalent on the host. Treat it as privileged.
 
@@ -60,47 +66,53 @@ Tenor does **not** bundle a container engine. You need an engine running separat
 
 ## Installation (dev)
 
-> Tenor is not released yet; use from source.
+> Tenor is currently in early development.
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/ryone9re/tenor
 cd tenor
-cargo build
-````
+cargo build --release
+```
+
+The binary will be at `target/release/tenor`.
 
 ---
 
 ## Run
 
-Workspace packages (planned):
+The workspace includes three packages:
 
-- `tenor-tui` — Ratatui frontend
-- `tenor-core` — domain + state machine + engine trait
-- `tenor-docker` — Docker Engine API adapter
+- `tenor-core` — domain models, state machine, Engine trait
+- `tenor-docker` — Docker Engine API adapter (implements Engine trait)
+- `tenor-tui` — Ratatui frontend (binary)
 
-Run TUI:
-
-```bash
-cargo run -p tenor-tui
-```
-
-If you need to point to a non-default socket (planned):
+Run the TUI:
 
 ```bash
-TENOR_DOCKER_HOST=unix:///var/run/docker.sock cargo run -p tenor-tui
+# Development
+cargo run
+
+# Or run directly from target
+./target/release/tenor
 ```
 
----
+Environment variables:
 
-## Keybindings (draft)
+```bash
+# Point to a specific Docker socket (future feature)
+DOCKER_HOST=unixCurrent Implementation)
 
-> UX is still evolving; this is the current direction.
+### Global
+- Quit: `q` or `Ctrl+C`
+- Switch tabs: `1`-`5` or `Tab`/`Shift+Tab`
+- Refresh: `r` or `R`
 
-- Navigation: `↑↓←→` / `hjkl`
-- Open details: `Enter`
-- Start / Stop / Restart: `s` / `t` / `r`
-- Delete: `d`
-- Logs: `l` (open), `f` (follow), `p` (pause), `/` (search)
+### Containers Tab
+- Navigate list: `↑↓` or `j`/`k`
+- Start container: `s`
+- Stop container: `t`
+
+> Note: More keybindings (restart, delete, logs, exec, etc.) are planned and will be added incrementally. (open), `f` (follow), `p` (pause), `/` (search)
 - Exec: `e`
 - Refresh: `R`
 - Command palette: `:`
@@ -145,31 +157,106 @@ tenor-tui ──> tenor-core (domain, state, Engine trait) ──> tenor-docker 
 
 ## Development
 
-### Formatting & Lint
+### Prerequisites
+
+- Rust 1.70+ (2021 edition)
+- Docker Engine running (dockerd)
+
+### Build & Run
 
 ```bash
-cargo fmt
-cargo clippy --all-targets --all-features
+# Build all packages
+cargo build
+
+# Run TUI application
+cargo run
+
+# Release build
+cargo build --release
 ```
 
-### Tests
+### Code Quality
 
 ```bash
+# Format code
+cargo fmt --all
+
+# Check formatting
+cargo fmt --all -- --check
+
+# Run linter
+cargo clippy --all-targets --all-features -- -D warnings
+
+# Run all quality checks
+cargo fmt --all -- --check && cargo clippy --all-targets --all-features -- -D warnings && cargo test --all
+```
+
+### Testing
+
+```bash
+# Run unit tests
 cargo test
+
+# Run tests with output
+cargo test -- --nocapture
+
+# Run tests for specific package
+cargo test -p tenor-core
+cargo test -p tenor-docker
 ```
 
-### Workspace layout (planned)
+**Test Coverage:**
+
+- 22 unit tests across all packages
+- Tests for domain models, error handling, mappers, and context detection
+- Integration tests planned for future releases
+
+### Mutation Testing
+
+Tenor uses [cargo-mutants](https://mutants.rs/) for mutation testing to ensure test quality:
+
+```bash
+# Install cargo-mutants
+cargo install cargo-mutants
+
+# Run mutation tests
+cargo mutants
+
+# Run on specific file
+cargo mutants -f tenor-core/src/domain/container.rs
+
+# Parallel execution (faster)
+cargo mutants --no-shuffle -j 4
+```
+
+Configuration is in [.cargo-mutants.toml](.cargo-mutants.toml).
+
+### Continuous Integration
+
+CI runs on every push to `main` and on pull requests:
+
+- ✅ Code formatting check (`cargo fmt`)
+- ✅ Linting (`cargo clippy` with `-D warnings`)
+- ✅ All unit tests
+- ✅ Security audit ([cargo-audit](https://github.com/rustsec/rustsec))
+- 🧬 Mutation tests (on `main` only)
+
+See [.github/workflows/ci.yml](.github/workflows/ci.yml) for details.
+
+### Workspace layout
 
 ```plaintext
 tenor/
-  crates/
-    tenor-core/
-    tenor-docker/
-    tenor-tui/
+  tenor-core/       # Domain models, Engine trait, error types
+  tenor-docker/     # Docker Engine API implementation
+  tenor-tui/        # Ratatui TUI application (binary)
   docs/
-    design/
-    adr/
-```
+    design/         # Design documents
+      tenor-design-doc.md
+      engine-api-spec.md
+      ui-ux-spec.md
+  .github/
+    copilot-instructions.md  # AI agent instructions
 
 ---
 
