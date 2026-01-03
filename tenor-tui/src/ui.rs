@@ -267,6 +267,20 @@ fn render_container_details(app: &App, frame: &mut Frame, area: Rect) {
 }
 
 fn render_images(app: &App, frame: &mut Frame, area: Rect) {
+    if app.show_image_details {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+            .split(area);
+
+        render_image_list(app, frame, chunks[0]);
+        render_image_details(app, frame, chunks[1]);
+    } else {
+        render_image_list(app, frame, area);
+    }
+}
+
+fn render_image_list(app: &App, frame: &mut Frame, area: Rect) {
     let items: Vec<ListItem> = app
         .images
         .iter()
@@ -300,7 +314,58 @@ fn render_images(app: &App, frame: &mut Frame, area: Rect) {
     frame.render_widget(list, area);
 }
 
+fn render_image_details(app: &App, frame: &mut Frame, area: Rect) {
+    let detail_text = if let Some(detail) = &app.image_detail {
+        let size_mb = detail.size as f64 / 1_000_000.0;
+        let tags = if !detail.repo_tags.is_empty() {
+            detail.repo_tags.join(", ")
+        } else {
+            "<none>".to_string()
+        };
+
+        format!(
+            "ID: {}\n\nTags:\n{}\n\nSize: {:.2} MB\n\nArchitecture: {}\nOS: {}\n\nCreated: {}\n\nLabels:\n{}",
+            detail.id.0,
+            tags,
+            size_mb,
+            detail.architecture,
+            detail.os,
+            detail.created_at.format("%Y-%m-%d %H:%M:%S"),
+            if detail.labels.is_empty() {
+                "  (none)".to_string()
+            } else {
+                detail.labels.iter()
+                    .map(|(k, v)| format!("  {}: {}", k, v))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+        )
+    } else {
+        "Loading...".to_string()
+    };
+
+    let paragraph = Paragraph::new(detail_text)
+        .block(Block::default().borders(Borders::ALL).title("Image Details"))
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, area);
+}
+
 fn render_volumes(app: &App, frame: &mut Frame, area: Rect) {
+    if app.show_volume_details {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+            .split(area);
+
+        render_volume_list(app, frame, chunks[0]);
+        render_volume_details(app, frame, chunks[1]);
+    } else {
+        render_volume_list(app, frame, area);
+    }
+}
+
+fn render_volume_list(app: &App, frame: &mut Frame, area: Rect) {
     let items: Vec<ListItem> = app
         .volumes
         .iter()
@@ -330,7 +395,51 @@ fn render_volumes(app: &App, frame: &mut Frame, area: Rect) {
     frame.render_widget(list, area);
 }
 
+fn render_volume_details(app: &App, frame: &mut Frame, area: Rect) {
+    let detail_text = if let Some(detail) = &app.volume_detail {
+        format!(
+            "Name: {}\n\nDriver: {}\nScope: {}\n\nMountpoint:\n{}\n\nLabels:\n{}",
+            detail.name.0,
+            detail.driver,
+            detail.scope,
+            detail.mountpoint,
+            if detail.labels.is_empty() {
+                "  (none)".to_string()
+            } else {
+                detail
+                    .labels
+                    .iter()
+                    .map(|(k, v)| format!("  {}: {}", k, v))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+        )
+    } else {
+        "Loading...".to_string()
+    };
+
+    let paragraph = Paragraph::new(detail_text)
+        .block(Block::default().borders(Borders::ALL).title("Volume Details"))
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, area);
+}
+
 fn render_networks(app: &App, frame: &mut Frame, area: Rect) {
+    if app.show_network_details {
+        let chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)])
+            .split(area);
+
+        render_network_list(app, frame, chunks[0]);
+        render_network_details(app, frame, chunks[1]);
+    } else {
+        render_network_list(app, frame, area);
+    }
+}
+
+fn render_network_list(app: &App, frame: &mut Frame, area: Rect) {
     let items: Vec<ListItem> = app
         .networks
         .iter()
@@ -360,6 +469,59 @@ fn render_networks(app: &App, frame: &mut Frame, area: Rect) {
     frame.render_widget(list, area);
 }
 
+fn render_network_details(app: &App, frame: &mut Frame, area: Rect) {
+    let detail_text = if let Some(detail) = &app.network_detail {
+        let ipam_info = detail
+            .ipam
+            .as_ref()
+            .map(|ipam| {
+                let configs = ipam
+                    .config
+                    .iter()
+                    .map(|c| {
+                        format!(
+                            "  Subnet: {}, Gateway: {}",
+                            c.subnet,
+                            c.gateway.as_deref().unwrap_or("N/A")
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                format!("IPAM Driver: {}\n{}", ipam.driver, configs)
+            })
+            .unwrap_or_else(|| "No IPAM config".to_string());
+
+        format!(
+            "ID: {}\n\nName: {}\n\nDriver: {}\nScope: {}\nInternal: {}\n\n{}\n\nLabels:\n{}",
+            detail.id.0,
+            detail.name,
+            detail.driver,
+            detail.scope,
+            if detail.internal { "Yes" } else { "No" },
+            ipam_info,
+            if detail.labels.is_empty() {
+                "  (none)".to_string()
+            } else {
+                detail
+                    .labels
+                    .iter()
+                    .map(|(k, v)| format!("  {}: {}", k, v))
+                    .collect::<Vec<_>>()
+                    .join("\n")
+            }
+        )
+    } else {
+        "Loading...".to_string()
+    };
+
+    let paragraph = Paragraph::new(detail_text)
+        .block(Block::default().borders(Borders::ALL).title("Network Details"))
+        .wrap(Wrap { trim: true });
+
+    frame.render_widget(paragraph, area);
+}
+
 fn render_placeholder(title: &str, frame: &mut Frame, area: Rect) {
     let text = Paragraph::new(format!("{} view - Coming soon", title))
         .block(Block::default().borders(Borders::ALL).title(title))
@@ -381,7 +543,11 @@ fn render_status_bar(app: &App, frame: &mut Frame, area: Rect) {
                 }
             }
             Tab::Images | Tab::Volumes | Tab::Networks => {
-                "q: quit | r: refresh | ↑↓/jk: navigate | d: delete | 1-5: switch tabs"
+                if app.show_image_details || app.show_volume_details || app.show_network_details {
+                    "q: quit | r: refresh | ↑↓/jk: navigate | Enter/i: close details | d: delete | 1-5: tabs"
+                } else {
+                    "q: quit | r: refresh | ↑↓/jk: navigate | Enter/i: details | d: delete | 1-5: tabs"
+                }
             }
             _ => "q: quit | r: refresh | 1-5: switch tabs",
         }

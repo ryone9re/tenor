@@ -2,8 +2,9 @@ use anyhow::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::sync::Arc;
 use tenor_core::{
-    Container, ContainerDetail, ContainerFilter, ContainerId, Engine, Image, ImageFilter, ImageId,
-    Network, NetworkFilter, NetworkId, Volume, VolumeFilter, VolumeName,
+    Container, ContainerDetail, ContainerFilter, ContainerId, Engine, Image, ImageDetail,
+    ImageFilter, ImageId, Network, NetworkDetail, NetworkFilter, NetworkId, Volume, VolumeDetail,
+    VolumeFilter, VolumeName,
 };
 use tenor_docker::{ConnectionTarget, DockerClient, DockerEngine};
 
@@ -79,12 +80,18 @@ pub struct App {
     // Images tab
     pub images: Vec<Image>,
     pub selected_image: usize,
+    pub show_image_details: bool,
+    pub image_detail: Option<ImageDetail>,
     // Volumes tab
     pub volumes: Vec<Volume>,
     pub selected_volume: usize,
+    pub show_volume_details: bool,
+    pub volume_detail: Option<VolumeDetail>,
     // Networks tab
     pub networks: Vec<Network>,
     pub selected_network: usize,
+    pub show_network_details: bool,
+    pub network_detail: Option<NetworkDetail>,
     // Global state
     pub should_quit: bool,
     pub modal: Option<(ConfirmDialog, ModalAction)>,
@@ -109,12 +116,18 @@ impl App {
             // Images
             images: Vec::new(),
             selected_image: 0,
+            show_image_details: false,
+            image_detail: None,
             // Volumes
             volumes: Vec::new(),
             selected_volume: 0,
+            show_volume_details: false,
+            volume_detail: None,
             // Networks
             networks: Vec::new(),
             selected_network: 0,
+            show_network_details: false,
+            network_detail: None,
             // Global
             should_quit: false,
             modal: None,
@@ -215,9 +228,7 @@ impl App {
                 }
             }
             KeyCode::Enter | KeyCode::Char('i') => {
-                if self.current_tab == Tab::Containers {
-                    self.toggle_details().await?;
-                }
+                self.toggle_details().await?;
             }
             _ => {}
         }
@@ -483,15 +494,48 @@ impl App {
     }
 
     async fn toggle_details(&mut self) -> Result<()> {
-        if self.show_details {
-            // Close details pane
-            self.show_details = false;
-            self.container_detail = None;
-        } else if let Some(container) = self.containers.get(self.selected_container) {
-            // Load and show details
-            let detail = self.engine.inspect_container(&container.id).await?;
-            self.container_detail = Some(detail);
-            self.show_details = true;
+        match self.current_tab {
+            Tab::Containers => {
+                if self.show_details {
+                    self.show_details = false;
+                    self.container_detail = None;
+                } else if let Some(container) = self.containers.get(self.selected_container) {
+                    let detail = self.engine.inspect_container(&container.id).await?;
+                    self.container_detail = Some(detail);
+                    self.show_details = true;
+                }
+            }
+            Tab::Images => {
+                if self.show_image_details {
+                    self.show_image_details = false;
+                    self.image_detail = None;
+                } else if let Some(image) = self.images.get(self.selected_image) {
+                    let detail = self.engine.inspect_image(&image.id).await?;
+                    self.image_detail = Some(detail);
+                    self.show_image_details = true;
+                }
+            }
+            Tab::Volumes => {
+                if self.show_volume_details {
+                    self.show_volume_details = false;
+                    self.volume_detail = None;
+                } else if let Some(volume) = self.volumes.get(self.selected_volume) {
+                    let detail = self.engine.inspect_volume(&volume.name).await?;
+                    self.volume_detail = Some(detail);
+                    self.show_volume_details = true;
+                }
+            }
+            Tab::Networks => {
+                if self.show_network_details {
+                    self.show_network_details = false;
+                    self.network_detail = None;
+                } else if let Some(network) = self.networks.get(self.selected_network) {
+                    let detail = self.engine.inspect_network(&network.id).await?;
+                    self.network_detail = Some(detail);
+                    self.show_network_details = true;
+                }
+            }
+            Tab::System => {}
         }
         Ok(())
     }

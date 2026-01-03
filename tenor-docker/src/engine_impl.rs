@@ -128,12 +128,10 @@ impl Engine for DockerEngine {
         Ok(images.into_iter().map(|i| i.into_domain()).collect())
     }
 
-    async fn inspect_image(&self, _id: &ImageId) -> EngineResult<ImageDetail> {
-        // TODO: Implement image inspect with proper detail mapping
-        Err(EngineError::user_actionable(
-            "Image inspect not yet implemented",
-            None,
-        ))
+    async fn inspect_image(&self, id: &ImageId) -> EngineResult<ImageDetail> {
+        let path = format!("/images/{}/json", id.as_ref());
+        let image: DockerImageInspect = self.client.get(&path).await?;
+        Ok(image.into_domain())
     }
 
     async fn remove_image(&self, id: &ImageId, force: bool) -> EngineResult<()> {
@@ -161,11 +159,10 @@ impl Engine for DockerEngine {
             .collect())
     }
 
-    async fn inspect_volume(&self, _name: &VolumeName) -> EngineResult<VolumeDetail> {
-        Err(EngineError::user_actionable(
-            "Volume inspect not yet implemented",
-            None,
-        ))
+    async fn inspect_volume(&self, name: &VolumeName) -> EngineResult<VolumeDetail> {
+        let path = format!("/volumes/{}", name.as_ref());
+        let volume: DockerVolumeInspect = self.client.get(&path).await?;
+        Ok(volume.into_domain())
     }
 
     async fn remove_volume(&self, name: &VolumeName, force: bool) -> EngineResult<()> {
@@ -183,11 +180,10 @@ impl Engine for DockerEngine {
         Ok(networks.into_iter().map(|n| n.into_domain()).collect())
     }
 
-    async fn inspect_network(&self, _id: &NetworkId) -> EngineResult<NetworkDetail> {
-        Err(EngineError::user_actionable(
-            "Network inspect not yet implemented",
-            None,
-        ))
+    async fn inspect_network(&self, id: &NetworkId) -> EngineResult<NetworkDetail> {
+        let path = format!("/networks/{}", id.as_ref());
+        let network: DockerNetworkInspect = self.client.get(&path).await?;
+        Ok(network.into_domain())
     }
 
     async fn remove_network(&self, id: &NetworkId) -> EngineResult<()> {

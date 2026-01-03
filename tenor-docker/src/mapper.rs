@@ -117,6 +117,23 @@ pub struct DockerImage {
     pub labels: Option<BTreeMap<String, String>>,
 }
 
+/// Docker API Image inspect response
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerImageInspect {
+    #[serde(rename = "Id")]
+    pub id: String,
+    #[serde(default)]
+    pub repo_tags: Vec<String>,
+    pub size: u64,
+    pub created: String,
+    #[serde(default)]
+    pub labels: Option<BTreeMap<String, String>>,
+    pub architecture: String,
+    #[serde(rename = "Os")]
+    pub os: String,
+}
+
 /// Docker API Volume response
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -126,6 +143,18 @@ pub struct DockerVolume {
     pub mountpoint: String,
     #[serde(default)]
     pub labels: Option<BTreeMap<String, String>>,
+}
+
+/// Docker API Volume inspect response
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerVolumeInspect {
+    pub name: String,
+    pub driver: String,
+    pub mountpoint: String,
+    #[serde(default)]
+    pub labels: Option<BTreeMap<String, String>>,
+    pub scope: String,
 }
 
 /// Docker API Volume list response
@@ -147,6 +176,37 @@ pub struct DockerNetworkInfo {
     pub internal: bool,
     #[serde(default)]
     pub labels: Option<BTreeMap<String, String>>,
+}
+
+/// Docker API Network inspect response
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerNetworkInspect {
+    #[serde(rename = "Id")]
+    pub id: String,
+    pub name: String,
+    pub driver: String,
+    pub scope: String,
+    pub internal: bool,
+    #[serde(default)]
+    pub labels: Option<BTreeMap<String, String>>,
+    #[serde(rename = "IPAM")]
+    pub ipam: Option<DockerIpam>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerIpam {
+    pub driver: String,
+    #[serde(default)]
+    pub config: Vec<DockerIpamConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct DockerIpamConfig {
+    pub subnet: String,
+    pub gateway: Option<String>,
 }
 
 /// Mappers
@@ -277,6 +337,58 @@ impl DockerNetworkInfo {
             scope: self.scope,
             internal: self.internal,
             labels: self.labels.unwrap_or_default(),
+        }
+    }
+}
+
+impl DockerImageInspect {
+    pub fn into_domain(self) -> ImageDetail {
+        ImageDetail {
+            id: ImageId(self.id),
+            repo_tags: self.repo_tags,
+            size: self.size,
+            created_at: DateTime::parse_from_rfc3339(&self.created)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_default(),
+            labels: self.labels.unwrap_or_default(),
+            architecture: self.architecture,
+            os: self.os,
+        }
+    }
+}
+
+impl DockerVolumeInspect {
+    pub fn into_domain(self) -> VolumeDetail {
+        VolumeDetail {
+            name: VolumeName(self.name),
+            driver: self.driver,
+            mountpoint: self.mountpoint,
+            labels: self.labels.unwrap_or_default(),
+            scope: self.scope,
+        }
+    }
+}
+
+impl DockerNetworkInspect {
+    pub fn into_domain(self) -> NetworkDetail {
+        NetworkDetail {
+            id: NetworkId(self.id),
+            name: self.name,
+            driver: self.driver,
+            scope: self.scope,
+            internal: self.internal,
+            labels: self.labels.unwrap_or_default(),
+            ipam: self.ipam.map(|ipam| IpamConfig {
+                driver: ipam.driver,
+                config: ipam
+                    .config
+                    .into_iter()
+                    .map(|c| IpamSubnet {
+                        subnet: c.subnet,
+                        gateway: c.gateway,
+                    })
+                    .collect(),
+            }),
         }
     }
 }
