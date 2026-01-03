@@ -22,23 +22,18 @@ jobs:
               with:
                   components: clippy, rustfmt
 
-            - name: Cache cargo registry
+            - name: Cache cargo dependencies
               uses: actions/cache@v4
               with:
-                  path: ~/.cargo/registry
-                  key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-            - name: Cache cargo index
-              uses: actions/cache@v4
-              with:
-                  path: ~/.cargo/git
-                  key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
-
-            - name: Cache target directory
-              uses: actions/cache@v4
-              with:
-                  path: target
-                  key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+                  path: |
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      target/
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-cargo-
 
             - name: Check formatting
               run: cargo fmt --all -- --check
@@ -65,17 +60,19 @@ jobs:
             - name: Install Rust
               uses: dtolnay/rust-toolchain@stable
 
-            - name: Cache cargo registry
+            - name: Cache cargo dependencies
               uses: actions/cache@v4
               with:
-                  path: ~/.cargo/registry
-                  key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
-            - name: Cache cargo index
-              uses: actions/cache@v4
-              with:
-                  path: ~/.cargo/git
-                  key: ${{ runner.os }}-cargo-git-${{ hashFiles('**/Cargo.lock') }}
+                  path: |
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      target/
+                  key: ${{ runner.os }}-cargo-mutants-${{ hashFiles('**/Cargo.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-cargo-mutants-
+                      ${{ runner.os }}-cargo-
 
             - name: Install cargo-mutants
               run: cargo install cargo-mutants --locked
